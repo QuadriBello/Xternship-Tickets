@@ -367,5 +367,3 @@ Logs the successful completion of the script and notifies the user to check the 
 
 This script ensures that only essential services are enabled and the latest security patches are applied on both Debian and RedHat-based systems, with robust error handling and logging.
 
-
-```
