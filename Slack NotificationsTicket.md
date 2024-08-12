@@ -1,4 +1,4 @@
-## Implement Slack Notifications for GitHub Actions (Failures on Main Branch Only)
+## Implement Slack Notifications for GitHub Actions (Failures Notifications Only)
 
 ### Description
 
@@ -16,7 +16,7 @@ As a DevOps engineer, I want to implement Slack notifications in the GitHub Acti
 
 **3.** **Branch Condition:**
 
-- Configure the notification to trigger only on failures for the main branch.
+- Configure the notification to trigger only on failures.
 
 **4.** **Secret Management:**
 
@@ -31,7 +31,8 @@ As a DevOps engineer, I want to implement Slack notifications in the GitHub Acti
 - Update project documentation to include instructions for setting up and modifying Slack notifications in the GitHub Actions pipeline
 
 
-### Instructions 
+### Instructions to Implement Slack Notifications for GitHub Actions (Failures Notifications Only)
+
 
 **1. Create a new slack channel:**
 
@@ -57,36 +58,53 @@ As a DevOps engineer, I want to implement Slack notifications in the GitHub Acti
 **4. Update the Packer Pipeline:**
 
 - Add steps in the pipeline to notify the team via Slack when a failure occurs on the main branch.
-- The **`Notify Slack on Failure`** step is added at the end of both the **`packer-test`** and **`deploy-to-production`** jobs. It checks if the pipeline has failed and triggers a notification if the failure occurs on the main branch.
+- The **`Notify Slack on Failure`** step is added at the end of both the **`packer-test`** and **`deploy-to-production`** jobs. It checks if the pipeline has failed and triggers a slack notification.
 - The Slack Webhook URL is securely stored in GitHub Secrets and is passed into the environment variables.
 
 **5. Usecase for Step:**
 
 ```
-#  This step checks if the pipeline has failed and triggers a notification if the failure occurs on the main branch.  
+#  This step checks if the pipeline has failed and triggers a slack notification.  
       - name: Notify Slack on Failure
-        if: always() && github.ref == 'refs/heads/main'
+        if: failure()  # Ensures the step runs only if previous steps failed
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "text": "❌ Packer Pipeline failed in repository ${{ github.repository }} on branch ${{ github.ref_name }} (commit: ${{ github.sha }}). View details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          REPO_NAME: ${{ github.repository }}
-          BRANCH_NAME: ${{ github.ref_name }}
-          COMMIT_SHA: ${{ github.sha }}
-          ACTION_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          if [ "${{ job.status }}" == 'failure' ]; then
-            curl -X POST -H 'Content-type: application/json' \
-              --data "{\"text\":\"❌ Packer Pipeline failed in repository $REPO_NAME on branch $BRANCH_NAME (commit: $COMMIT_SHA). View details: $ACTION_URL\"}" \
-              $SLACK_WEBHOOK_URL
-          fi
 ```
 
-**i.** **`if: always() && github.ref == 'refs/heads/main'`**:
-   - `always()`: Ensures that this step runs regardless of the success or failure of the previous steps. This is important as the pipeline may stop executing once a failure occurs. 
-   - `github.ref == 'refs/heads/main'`: Restricts the execution of the Slack notification to the `main` branch only.
+**i.** **Condition to Run Step:**
+   -  **`if: failure()`** This condition ensures that this step will only execute if any of the previous steps in the job have failed. If all previous steps succeed, this step will be skipped.
 
-**ii.** **Environment Variables**:
-   - `SLACK_WEBHOOK_URL`, `REPO_NAME`, `BRANCH_NAME`, `COMMIT_SHA`, and `ACTION_URL` are set using GitHub context expressions. These provide the necessary information to format the Slack message.
+**ii.** **Slack Notification Action:**
+   - This line specifies the action to use for sending a Slack notification. The **`slackapi/slack-github-action@v1.26.0`** is a GitHub Action that integrates with Slack's API to send messages to a specified Slack channel.
 
-**iii.** **`if [ "${{ job.status }}" == 'failure' ]; then ... fi`**:
-   - This shell command checks if the job's status is `"failure"`.
-   - If the job has failed, it sends a POST request to Slack using `curl` with the formatted message.
+**iii.** **Slack Message Payload:**
+
+```
+with:
+  payload: |
+    {
+      "text": "❌ Terraform Pipeline failed in repository ${{ github.repository }} on branch ${{ github.ref_name }} (commit: ${{ github.sha }}). View details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+    }
+```
+
+This section defines the content of the Slack message that will be sent if the pipeline fails:
+- ${{ github.repository }}: Replaced by the repository name.
+- ${{ github.ref_name }}: Replaced by the name of the branch where the failure occurred.
+- ${{ github.sha }}: Replaced by the commit SHA that triggered the pipeline.
+- ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}: This generates a URL that links directly to the failed GitHub Actions run, allowing easy access to view details.
+
+**iv.** **Environment Variables**
+
+```
+env:
+  SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+```
+
+- The **`SLACK_WEBHOOK_URL`** environment variable is needed for the Slack action to send the message to the correct Slack channel.
+- **`${{ secrets.SLACK_WEBHOOK_URL }}`**: This is a secret stored in the GitHub repository settings. It contains the URL to the Slack webhook, ensuring that the webhook URL is kept secure and is not exposed in the code.
