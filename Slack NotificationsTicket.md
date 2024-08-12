@@ -40,4 +40,4 @@ As a DevOps engineer, I want to implement Slack notifications in the GitHub Acti
 
 2. Obtain a Webhook URL:
 
-- Visit the (slack api website)[https://api.slack.com/]
+- Visit the [slack api website](https://api.slack.com/)
