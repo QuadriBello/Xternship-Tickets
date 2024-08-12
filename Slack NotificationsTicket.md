@@ -35,9 +35,22 @@ As a DevOps engineer, I want to implement Slack notifications in the GitHub Acti
 
 1. Create a new slack channel:
 
-- On the slack GUI, Click on the **`+`** button and create a channel.
+- On the slack workspace, Click on the **`+`** button and create a channel.
 - Use the naming convention of the existing POD A and just add a suffix of CI/CD.
 
 2. Obtain a Webhook URL:
 
 - Visit the [slack api website](https://api.slack.com/)
+- Click on **Your Apps** and click on **create an app**.
+- In the dialogue box, select the option that creates the app from scratch.
+- Name the app and select the relevant workspace
+- On the slack api page, click on incoming webhooks and set it up for the newly created channel.
+- Copy the webhook URL
+
+3. Add the Slack Webhook URL to Github Secrets:
+
+- Go to your repository settings on GitHub.
+- Navigate to Settings > Secrets and variables > Actions.
+- Add a new secret:
+x Name: SLACK_WEBHOOK_URL
+x Value: Paste the Slack Webhook URL.
